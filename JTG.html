@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Josh's Typing Game</title>
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
+<link rel="apple-touch-icon" sizes="180x180" href="/tgi.png">
+<link rel="icon" type="image/png" sizes="32x32" href="tgi.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/tgi.png">
+<link rel="manifest" href="/site.webmanifest">
+<link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5">
+<style>
+  body { font-family: Arial, sans-serif; background: #121212; color: #eee; margin: 20px; transition: background 0.3s, color 0.3s; }
+  #game { max-width: 800px; margin: auto; }
+  #quoteDisplay { padding: 20px; background: #1e1e1e; border-radius: 10px; margin-bottom: 20px; min-height: 100px; transition: background 0.3s, color 0.3s; }
+  #quoteDisplay span.correct { color: #0f0; }
+  #quoteDisplay span.incorrect { color: #f00; text-decoration: underline; }
+  #quoteDisplay span.current { text-decoration: underline; color: #fff; }
+  textarea { width: 100%; height: 100px; margin-bottom: 20px; background: #1e1e1e; color: #eee; border: 1px solid #555; border-radius: 5px; padding: 10px; transition: background 0.3s, color 0.3s, border 0.3s; }
+  button { padding: 10px 20px; margin: 5px; background: #333; color: #eee; border: none; border-radius: 5px; cursor: pointer; transition: background 0.3s, color 0.3s; }
+  #results { margin-top: 20px; font-size: 18px; }
+  .leaderboards { display: flex; justify-content: space-between; gap: 20px; margin-top: 20px; }
+  .leaderboard { flex: 1; background: #1e1e1e; border-radius: 10px; padding: 10px; transition: background 0.3s, color 0.3s; }
+  canvas { position: fixed; top: 0; left: 0; pointer-events: none; }
+</style>
+</head>
+<body>
+<div id="game">
+  <h1>Josh's Typing Game</h1>
+  <label>Dark Mode <input type="checkbox" id="darkToggle" checked></label>
+  <br><label>WPM Mode: <select id="wpmModeToggle"><option value="chars" selected>Chars</option><option value="words">Words</option></select></label>
+  <br><label>Legnth: <select id="difficulty"><option value="short">Short</option><option value="medium" selected>Medium</option><option value="long">Long</option></select></label>
+  <button id="startBtn">Start</button>
+  <button id="resetLeaderboardBtn">Reset Leaderboards</button>
+  
+  <div id="quoteDisplay"></div>
+  <textarea id="quoteInput" disabled></textarea>
+  <div id="results">
+    Time: <span id="timer">0.0</span>s | WPM: <span id="wpm">0</span> | Best WPM: <span id="bestWpm">-</span>
+  </div>
+  
+  <div class="leaderboards">
+    <div class="leaderboard">
+      <h3>Top 5 (Words Mode)</h3>
+      <ul id="leaderboardWords"></ul>
+    </div>
+    <div class="leaderboard">
+      <h3>Top 5 (Chars Mode)</h3>
+      <ul id="leaderboardChars"></ul>
+    </div>
+  </div>
+</div>
+<canvas id="confetti"></canvas>
+
+<script>
+// === QUOTES ===
+const shortQuotes = [
+  "Stay hungry, stay foolish.",
+  "Less is more.",
+  "Time is money.",
+  "Knowledge is power.",
+  "Seize the day.",
+  "Dream big.",
+  "Keep moving forward.",
+  "Just do it.",
+  "Believe in yourself.",
+  "Never give up.",
+  "Think different.",
+  "Embrace the journey.",
+  "Live and learn.",
+  "Carpe diem.",
+  "Be the change.",
+  "Courage over comfort.",
+  "Small steps matter.",
+  "Love conquers all.",
+  "Actions speak louder.",
+  "Choose wisely.",
+  "Failure teaches success.",
+  "Stay curious.",
+  "Create your reality.",
+  "Trust the process.",
+  "Live with purpose.",
+  "Enjoy the moment.",
+  "Focus and win.",
+  "Change is constant.",
+  "Keep it simple.",
+  "Do what matters."
+];
+
+const mediumQuotes = [
+  "The only limit is the one you set yourself.",
+  "Success comes to those who refuse to give up.",
+  "Happiness is found when you stop comparing yourself to others.",
+  "Challenges are what make life interesting and overcoming them is what makes life meaningful.",
+  "Do what you love, love what you do, and stay passionate.",
+  "Every day is a second chance to get things right.",
+  "Your attitude determines your direction and your success in life.",
+  "Don’t count the days, make the days count.",
+  "Great things never come from comfort zones; embrace the challenge.",
+  "Focus on progress, not perfection, and celebrate small wins.",
+  "The best way to predict the future is to create it.",
+  "Mistakes are proof that you are trying and learning.",
+  "Opportunities are often disguised as hard work; embrace them.",
+  "Believe you can, and you’re already halfway there.",
+  "Persistence and patience are keys to achieving meaningful goals.",
+  "Life begins at the end of your comfort zone.",
+  "Do not wait for opportunities; create them yourself.",
+  "Your mindset shapes your reality more than your circumstances.",
+  "The journey matters more than the destination in life.",
+  "Confidence comes from preparation and consistent effort over time.",
+  "Success is walking from failure to failure without losing enthusiasm.",
+  "You are stronger than you think and braver than you feel.",
+  "The smallest step forward is better than no step at all.",
+  "Dreams don’t work unless you do the work yourself.",
+  "Focus on what you can control and release the rest.",
+  "Hardships often prepare ordinary people for extraordinary destinies.",
+  "Do not fear change; it is the only constant.",
+  "Energy flows where your attention goes; choose wisely.",
+  "Courage is not the absence of fear, but action despite it.",
+  "You create your own opportunities by taking consistent action."
+];
+
+const longQuotes = [
+  "The greatest glory in living lies not in never falling, but in rising every time we fall and learning from each experience along the way.",
+  "Life is about making an impact, not making an income. Focus on meaningful work and relationships, and the rest will naturally follow as a result of your actions.",
+  "Success is not final, failure is not fatal: It is the courage to continue that counts, because perseverance in the face of adversity defines true achievement.",
+  "Don’t be pushed around by the fears in your mind. Be led by the dreams in your heart and the values that define who you truly are.",
+  "In the middle of difficulty lies opportunity, and those who are willing to embrace challenges with a positive mindset often discover strength they didn’t know they had.",
+  "Happiness is not something ready made. It comes from your own actions, choices, and mindset. Cultivate gratitude, kindness, and resilience to create lasting joy in life.",
+  "Your time is limited, so don’t waste it living someone else’s life. Pursue your passions, honour your values, and focus on what truly matters to you.",
+  "The best way to achieve your dreams is to break them into small, actionable steps, take consistent action every day, and remain persistent despite setbacks or obstacles.",
+  "Life isn’t about waiting for the storm to pass. It’s about learning to dance in the rain and finding joy in every moment, no matter the circumstances.",
+  "Do not judge your progress by the progress of others. Focus on your journey, celebrate your milestones, and trust the process that shapes your unique path.",
+  "Everything you’ve ever wanted is on the other side of fear. Embrace challenges, take risks, and push beyond self-imposed limitations to achieve your fullest potential.",
+  "Motivation is what gets you started, but habit is what keeps you going. Build daily routines that align with your goals and consistently reinforce them over time.",
+  "The only way to do great work is to love what you do. Passion, focus, and dedication are the foundation for meaningful accomplishments and long-term success.",
+  "Life is a journey, not a destination. Learn from every experience, cherish relationships, and embrace personal growth to cultivate a life filled with purpose and fulfilment.",
+  "Do not go where the path may lead; go instead where there is no path and leave a trail. Originality and courage often create the most lasting impact.",
+  "Strive not to be a success, but rather to be of value. Contribution, integrity, and service to others leave a legacy far greater than personal accolades.",
+  "Challenges are gifts that force us to search for a new centre of gravity. Don’t resist them; find opportunity within adversity and grow stronger through perseverance.",
+  "Your mindset is a powerful tool. Cultivate positivity, resilience, and focus, and you can overcome obstacles that once seemed insurmountable, turning them into opportunities for growth.",
+  "Do not let yesterday take up too much of today. Learn, adjust, and move forward with courage, because every new day provides a fresh chance to improve.",
+  "Life is what happens when you’re busy making other plans. Stay present, embrace uncertainty, and focus on meaningful connections, experiences, and the pursuit of your goals.",
+  "You can’t go back and change the beginning, but you can start where you are and change the ending. Take responsibility for your choices and actions today.",
+  "Great achievements often require patience, perseverance, and consistent effort. Focus on what you can control, keep learning, and don’t be discouraged by temporary setbacks along the way.",
+  "Believe in yourself and all that you are. Know that there is something inside you greater than any obstacle, and let your determination guide you toward success.",
+  "Success is not measured by wealth or fame, but by the positive impact you have on others, the legacy you leave, and the personal growth you achieve along the way.",
+  "Happiness is when what you think, what you say, and what you do are in harmony. Align your values with your actions to experience lasting fulfilment.",
+  "The mind is everything. What you think, you become. Cultivate positive thoughts, take meaningful action, and embrace challenges as opportunities to grow, learn, and achieve your dreams.",
+  "Don’t count the days; make the days count. Approach each day with purpose, intention, and action, and your consistent efforts will yield extraordinary results over time.",
+  "An unexamined life is not worth living. Reflect on your choices, learn from mistakes, and strive to live intentionally, guided by values, purpose, and meaningful goals.",
+  "Everything you can imagine is real. Ideas, combined with consistent action, courage, and determination, have the power to shape your life and turn possibilities into reality."
+];
+
+
+// === GAME STATE ===
+let timerInterval, startTime, currentQuote, finished=false;
+let bestScores = JSON.parse(localStorage.getItem('bestScores')||'{"words":0,"chars":0}');
+let leaderboards = JSON.parse(localStorage.getItem('leaderboards')||'{"words":[],"chars":[]}');
+
+// === ELEMENTS ===
+const quoteDisplay=document.getElementById('quoteDisplay');
+const quoteInput=document.getElementById('quoteInput');
+const timerEl=document.getElementById('timer');
+const wpmEl=document.getElementById('wpm');
+const bestWpmEl=document.getElementById('bestWpm');
+const startBtn=document.getElementById('startBtn');
+const resetLeaderboardBtn=document.getElementById('resetLeaderboardBtn');
+const difficulty=document.getElementById('difficulty');
+const wpmModeToggle=document.getElementById('wpmModeToggle');
+const leaderboardWords=document.getElementById('leaderboardWords');
+const leaderboardChars=document.getElementById('leaderboardChars');
+const darkToggle=document.getElementById('darkToggle');
+const confettiCanvas=document.getElementById('confetti');
+const ctx=confettiCanvas.getContext('2d');
+
+// === CONFETTI ===
+let confettiParticles=[];
+function shootConfetti(){confettiParticles=[];for(let i=0;i<100;i++){confettiParticles.push({x:Math.random()*window.innerWidth,y:Math.random()*window.innerHeight-50,vx:Math.random()*4-2,vy:Math.random()*-5-2,color:`hsl(${Math.random()*360},100%,50%)`,size:Math.random()*5+2});}requestAnimationFrame(updateConfetti);}
+function updateConfetti(){ctx.clearRect(0,0,confettiCanvas.width,confettiCanvas.height);confettiParticles.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=0.05;ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(p.x,p.y,p.size,0,Math.PI*2);ctx.fill();});confettiParticles=confettiParticles.filter(p=>p.y<window.innerHeight);if(confettiParticles.length>0)requestAnimationFrame(updateConfetti);}
+
+// === HELPERS ===
+function pickQuote(){let arr=difficulty.value==="short"?shortQuotes:difficulty.value==="medium"?mediumQuotes:longQuotes;return arr[Math.floor(Math.random()*arr.length)];}
+function renderQuote(quote){quoteDisplay.innerHTML='';quote.split('').forEach(ch=>{const span=document.createElement('span');span.textContent=ch;quoteDisplay.appendChild(span);});}
+function startGame(){finished=false;quoteInput.disabled=false;quoteInput.value='';currentQuote=pickQuote();renderQuote(currentQuote);timerEl.textContent="0.0";wpmEl.textContent="0";quoteInput.focus();startTime=null;clearInterval(timerInterval);}
+function updateTimer(){const elapsed=(Date.now()-startTime)/1000;timerEl.textContent=elapsed.toFixed(1);calculateWPM();}
+function calculateWPM(final = false) {
+  if (!startTime) return;
+  const elapsedSeconds = (Date.now() - startTime) / 1000;
+  const elapsedMinutes = elapsedSeconds / 60;
+  let mode = wpmModeToggle.value;
+  const quoteSpans = quoteDisplay.querySelectorAll('span');
+  let correctChars = 0;
+  for (let i = 0; i < quoteInput.value.length; i++) {
+    if (quoteSpans[i] && quoteInput.value[i] === quoteSpans[i].textContent) correctChars++;
+  }
+  let value;
+  if (mode === "words") { value = (correctChars / 5) / elapsedMinutes; }
+  else { value = correctChars / (elapsedMinutes*5); } // divide by 5 for chars mode
+  wpmEl.textContent = value > 0 ? value.toFixed(1) : "0";
+}
+function finishGame() {
+  clearInterval(timerInterval);
+  finished = true;
+  quoteInput.disabled = true;
+  calculateWPM(true);
+  let mode = wpmModeToggle.value;
+  let wpm = parseFloat(wpmEl.textContent);
+  // Only ask for name if top 5
+  let lowestTop5 = leaderboards[mode].length < 5 ? 0 : leaderboards[mode][4].wpm;
+  if(wpm > lowestTop5){
+    let name = prompt("Congrats! Enter your name:","Player")||"Anon";
+    leaderboards[mode].push({name,wpm});
+    leaderboards[mode].sort((a,b)=>b.wpm-a.wpm);
+    leaderboards[mode] = leaderboards[mode].slice(0,5);
+    localStorage.setItem('leaderboards',JSON.stringify(leaderboards));
+  }
+  if (wpm > bestScores[mode]) {
+    bestScores[mode] = wpm;
+    localStorage.setItem('bestScores', JSON.stringify(bestScores));
+    shootConfetti();
+  }
+  updateBestScore();
+  renderLeaderboards();
+}
+function updateBestScore(){let mode=wpmModeToggle.value;bestWpmEl.textContent=bestScores[mode]?bestScores[mode].toFixed(1):"-";}
+function renderLeaderboards(){leaderboardWords.innerHTML=leaderboards.words.map(e=>`<li>${e.name} - ${e.wpm.toFixed(1)} WPM</li>`).join('');leaderboardChars.innerHTML=leaderboards.chars.map(e=>`<li>${e.name} - ${e.wpm.toFixed(1)} WPM</li>`).join('');}
+
+// === EVENTS ===
+quoteInput.addEventListener('input',()=> {
+  if(finished) return;
+  if(!startTime) { startTime = Date.now(); timerInterval = setInterval(updateTimer,100); }
+  const quoteSpans=quoteDisplay.querySelectorAll('span');
+  const value=quoteInput.value.split('');
+  quoteSpans.forEach((span,i)=>{
+    const char=value[i];
+    span.classList.remove('current');
+    if(char==null){span.classList.remove('correct','incorrect');}
+    else if(char===span.textContent){span.classList.add('correct');span.classList.remove('incorrect');}
+    else{span.classList.add('incorrect');span.classList.remove('correct');}
+  });
+  if(quoteSpans[value.length]) quoteSpans[value.length].classList.add('current');
+  if(value.length >= currentQuote.length){finishGame();}
+});
+startBtn.addEventListener('click',startGame);
+resetLeaderboardBtn.addEventListener('click',()=>{if(confirm("Reset leaderboards? This cannot be undone.")){leaderboards={words:[],chars:[]};localStorage.setItem('leaderboards',JSON.stringify(leaderboards));renderLeaderboards();}});
+darkToggle.addEventListener('change', () => {
+    if(darkToggle.checked){
+        document.body.style.background = "#121212";
+        document.body.style.color = "#eee";
+        quoteDisplay.style.background = "#1e1e1e";
+        quoteDisplay.style.color = "#eee";
+        quoteInput.style.background = "#1e1e1e";
+        quoteInput.style.color = "#eee";
+        document.querySelectorAll('button').forEach(btn => {
+            btn.style.background = "#333";
+            btn.style.color = "#eee";
+        });
+        document.querySelectorAll('.leaderboard').forEach(lb => {
+            lb.style.background = "#1e1e1e";
+            lb.style.color = "#eee";
+        });
+    } else {
+        document.body.style.background = "#fff";
+        document.body.style.color = "#333";
+        quoteDisplay.style.background = "#f0f0f0";
+        quoteDisplay.style.color = "#000";
+        quoteInput.style.background = "#fff";
+        quoteInput.style.color = "#333";
+        document.querySelectorAll('button').forEach(btn => {
+            btn.style.background = "#eee";
+            btn.style.color = "#333";
+        });
+        document.querySelectorAll('.leaderboard').forEach(lb => {
+            lb.style.background = "#f0f0f0";
+            lb.style.color = "#000";
+        });
+    }
+});
+wpmModeToggle.addEventListener('change',updateBestScore);
+
+// === HIDDEN RESET BEST WPM BUTTON ===
+const resetBestBtn = document.createElement('button');
+resetBestBtn.textContent = "Reset Best WPM";
+resetBestBtn.style.display = "none";
+resetBestBtn.style.position = "fixed";
+resetBestBtn.style.bottom = "10px";
+resetBestBtn.style.right = "10px";
+resetBestBtn.style.zIndex = "9999";
+document.body.appendChild(resetBestBtn);
+resetBestBtn.addEventListener('click', () => {
+    if(confirm("Are you sure you want to reset Best WPM?")) {
+        bestScores = { words: 0, chars: 0 };
+        localStorage.setItem('bestScores', JSON.stringify(bestScores));
+        updateBestScore();
+        alert("Best WPM has been reset!");
+    }
+});
+document.addEventListener('keydown', (e) => {
+    if(e.ctrlKey && e.shiftKey && e.key === "R") {
+        resetBestBtn.style.display = "block";
+    }
+});
+
+window.onload=()=>{confettiCanvas.width=window.innerWidth;confettiCanvas.height=window.innerHeight;updateBestScore();renderLeaderboards();};
+</script>
+</body>
+</html>
