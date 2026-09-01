@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script src="https://accounts.google.com/gsi/client" async></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SBType beta</title>
+  <link rel="preload" as="image" href="images/cbhsbg.png" type="image/png">
+  <link rel="stylesheet" href="style2.css">
+  <script src="https://kit.fontawesome.com/93447a6de9.js" crossorigin="anonymous"></script>
+  <script>
+      function decodeJWT(token) {
+
+        let base64Url = token.split(".")[1];
+        let base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+        let jsonPayload = decodeURIComponent(
+          atob(base64)
+            .split("")
+            .map(function (c) {
+              return "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2);
+            })
+            .join("")
+        );
+        return JSON.parse(jsonPayload);
+      }
+
+      function handleCredentialResponse(response) {
+
+        console.log("Encoded JWT ID token: " + response.credential);
+
+        const responsePayload = decodeJWT(response.credential);
+
+        console.log("Decoded JWT ID token fields:");
+        console.log("  Full Name: " + responsePayload.name);
+        console.log("  Given Name: " + responsePayload.given_name);
+        console.log("  Family Name: " + responsePayload.family_name);
+        console.log("  Unique ID: " + responsePayload.sub);
+        console.log("  Profile image URL: " + responsePayload.picture);
+        console.log("  Email: " + responsePayload.email);
+        
+      }
+    </script>
+</head>
+
+<body>
+
+<div>
+  <form action="/action_page.php" method="post">
+    <div class="imgcontainer">
+      <h1 class="title">CBHS Type Login</h1>
+      <h2>Currently in development.</h2>
+      <h3>(You are able to login, but your information will not be saved.)</h3>
+    </div>
+
+    <div class="container">
+      
+      <label for="uname"><b>Username</b></label>
+      <input type="text" placeholder="Enter Username" name="uname" required>
+
+      <label for="psw"><b>Password</b></label>
+      <input type="password" placeholder="Enter Password" name="psw" required>
+          
+      <button type="submit">Login</button>
+      <label>
+        <input type="checkbox" checked="checked" name="remember"> Remember me
+      </label>
+    </div>
+
+        <!-- g_id_onload contains Google Identity Services settings -->
+    <div
+      id="g_id_onload"
+      data-auto_prompt="false"
+      data-callback="handleCredentialResponse"
+      data-client_id="149074982574-li8chclj4hqtr60rqrn5f3vpgi5ho9lv.apps.googleusercontent.com"
+    ></div>
+    <!-- g_id_signin places the button on a page and supports customization -->
+    <div class="g_id_signin"></div>
+
+    <div class="container" style="background-color: #2d394d; border-radius: 12px;">
+      <button type="button" class="cancelbtn" id="cancelBtn">
+       <b>Cancel</b>
+      </button>
+
+      <span onclick="alert('Try to remember!')" class="psw"><a href="#">Forgot password?</a></span>
+    </div> 
+  </form>
+</div>
+
+    <script src="script.js"></script>
+</body>
+</html>
